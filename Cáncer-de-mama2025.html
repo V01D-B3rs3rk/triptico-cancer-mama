@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tríptico Interactivo: Prevención y Detección del Cáncer de Mama</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    <style id="app-style">
+        :root {
+            --primary-color: #e84393;
+            --primary-light: #fd79a8;
+            --primary-dark: #b83280;
+            --secondary-color: #74b9ff;
+            --accent-color: #81ecec;
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+            --bg-light: #f8f9fa;
+            --bg-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-dark);
+            background-color: #fafafa;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .accordion-header {
+            cursor: pointer;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion-content.active {
+            max-height: 1000px;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        .quiz-option {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            background-color: #ffeaa7;
+        }
+
+        .quiz-option.correct {
+            background-color: #55efc4;
+        }
+
+        .quiz-option.incorrect {
+            background-color: #ff7675;
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ribbon {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .ribbon-content {
+            position: absolute;
+            display: block;
+            width: 225px;
+            padding: 8px 0;
+            background-color: var(--primary-color);
+            box-shadow: 0 5px 10px rgba(0,0,0,.1);
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,.2);
+            text-align: center;
+            right: -25px;
+            top: 30px;
+            transform: rotate(45deg);
+        }
+
+        /* PDF Viewer Styles */
+        #pdf-viewer {
+            width: 100%;
+            height: calc(100vh - 250px);
+            min-height: 500px;
+            background-color: #525659;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #pdf-canvas {
+            margin: 0 auto;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background-color: white;
+        }
+
+        .pdf-controls {
+            background-color: #f1f1f1;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pdf-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pdf-button:hover {
+            background-color: #e9e9e9;
+        }
+
+        .pdf-search {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0 10px;
+        }
+
+        .pdf-search input {
+            border: none;
+            padding: 8px;
+            outline: none;
+            width: 150px;
+        }
+
+        .pdf-page-info {
+            padding: 8px 15px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .pdf-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255,255,255,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="ribbon hidden md:block">
+        <div class="ribbon-content">Octubre: Mes de la sensibilización</div>
+    </div>
+
+    <header class="bg-white shadow-md fixed top-0 w-full z-10">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-ribbon text-pink-500 text-3xl mr-3"></i>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Prevención y Detección del <span class="text-pink-500">Cáncer de Mama</span></h1>
+                </div>
+                <nav class="flex overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1 active" data-tab="info">
+                        <i class="fas fa-info-circle mr-1"></i> Información
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1" data-tab="autoexam">
+                        <i class="fas fa-hand-holding-medical mr-1"></i> Autoexamen
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1" data-tab="resources">
+                        <i class="fas fa-phone-alt mr-1"></i> Contactos
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1" data-tab="statistics">
+                        <i class="fas fa-chart-bar mr-1"></i> Estadísticas
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1" data-tab="quiz">
+                        <i class="fas fa-question-circle mr-1"></i> Cuestionario
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 ease-in-out border-b-2 border-transparent mx-1" data-tab="pdf">
+                        <i class="fas fa-file-pdf mr-1"></i> Visor PDF
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 mt-20 md:mt-24 mb-10">
+        <!-- Información General -->
+        <section id="info" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://img.freepik.com/vector-premium/iconos-cinta_933463-98686.jpg" alt="Concientización sobre el cáncer de mama" class="w-full h-49 object-cover">
+                    <div class="p-6">
+                        <h2 class="text-xl font-bold mb-3 text-pink-600">¿Qué es el cáncer de mama?</h2>
+                        <p class="text-gray-700 mb-4">El cáncer de mama es un tipo de cáncer que se forma en las células de las mamas. Después del cáncer de piel, es el tipo de cáncer más común en mujeres, aunque también puede afectar a hombres.</p>
+                        <button class="accordion-header flex justify-between items-center w-full text-pink-600 font-medium">
+                            <span>Leer más</span>
+                            <i class="fas fa-chevron-down transition-transform duration-300"></i>
+                        </button>
+                        <div class="accordion-content mt-2 text-gray-600">
+                            <p class="mb-3">El cáncer de mama puede comenzar en diferentes partes de la mama, como los conductos, los lobulillos o el tejido conectivo. La detección temprana y el tratamiento oportuno mejoran significativamente las tasas de supervivencia.</p>
+                            <p>Es importante recordar que no todas las protuberancias en los senos son cancerosas, pero cualquier cambio debe ser evaluado por un profesional de la salud.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://pbs.twimg.com/media/EhU0S1pXgAc0Std.jpg:large" alt="Factores de riesgo" class="w-full h-49 object-cover">
+                    <div class="p-6">
+                        <h2 class="text-xl font-bold mb-3 text-pink-600">Factores de riesgo</h2>
+                        <p class="text-gray-700 mb-4">Existen diversos factores que pueden aumentar el riesgo de desarrollar cáncer de mama, aunque tener uno o varios no significa que definitivamente ocurrirá.</p>
+                        <button class="accordion-header flex justify-between items-center w-full text-pink-600 font-medium">
+                            <span>Leer más</span>
+                            <i class="fas fa-chevron-down transition-transform duration-300"></i>
+                        </button>
+                        <div class="accordion-content mt-2 text-gray-600">
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li>Ser mujer</li>
+                                <li>Edad avanzada</li>
+                                <li>Antecedentes familiares</li>
+                                <li>Genética (mutaciones en genes BRCA1 y BRCA2)</li>
+                                <li>Exposición a radiación</li>
+                                <li>Inicio temprano de la menstruación o menopausia tardía</li>
+                                <li>Sobrepeso después de la menopausia</li>
+                                <li>Consumo de alcohol</li>
+                                <li>No haber tenido hijos o tener el primer hijo después de los 30 años</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://pbs.twimg.com/media/FgFx8pqUAAAkDOM.jpg:large" alt="Prevención" class="w-full h-49 object-cover">
+                    <div class="p-6">
+                        <h2 class="text-xl font-bold mb-3 text-pink-600">Señales de advertencia</h2>
+                        <p class="text-gray-700 mb-4">El cáncer de mama puede presentar diversos síntomas, aunque algunas personas no experimentan ninguno. Es importante conocer los posibles signos.</p>
+                        <button class="accordion-header flex justify-between items-center w-full text-pink-600 font-medium">
+                            <span>Leer más</span>
+                            <i class="fas fa-chevron-down transition-transform duration-300"></i>
+                        </button>
+                        <div class="accordion-content mt-2 text-gray-600">
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li>Bulto o engrosamiento en la mama o axila</li>
+                                <li>Cambios en el tamaño o forma de la mama</li>
+                                <li>Cambios en la piel de la mama (hoyuelos, enrojecimiento, textura similar a la piel de naranja)</li>
+                                <li>Inversión reciente del pezón</li>
+                                <li>Descarga del pezón (especialmente si contiene sangre)</li>
+                                <li>Descamación o desprendimiento de la piel del pezón o la mama</li>
+                                <li>Dolor persistente en una parte de la mama</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-pink-100 rounded-lg p-6 my-6">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/4 mb-4 md:mb-0 flex justify-center">
+                        <i class="fas fa-heartbeat text-pink-500 text-7xl"></i>
+                    </div>
+                    <div class="md:w-3/4 md:pl-6">
+                        <h2 class="text-2xl font-bold text-pink-700 mb-3">Importancia de la detección temprana</h2>
+                        <p class="text-gray-700 mb-4">Cuando el cáncer de mama se detecta temprano, en una etapa localizada, la tasa de supervivencia a 5 años es del 99%. La detección temprana incluye el autoexamen mensual, exámenes clínicos y mamografías regulares según la edad y los factores de riesgo.</p>
+                        <p class="text-gray-700">Es crucial estar atento a cualquier cambio en tus senos y consultar con un profesional de la salud si notas algo inusual. Recuerda, tanto hombres como mujeres pueden desarrollar cáncer de mama, aunque es más común en mujeres.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Guía de Autoexamen -->
+        <section id="autoexam" class="tab-content">
+            <div class="bg-pink-50 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-pink-600 mb-4">Guía de Autoexamen de Mama</h2>
+                <p class="text-gray-700 mb-4">El autoexamen de mama es una herramienta que te ayuda a familiarizarte con la apariencia y textura normal de tus senos, lo que te permite notar cualquier cambio. Se recomienda realizarlo una vez al mes, preferiblemente 7-10 días después del inicio de tu período menstrual.</p>
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <p class="text-pink-600 font-medium mb-2"><i class="fas fa-exclamation-circle mr-2"></i>Importante:</p>
+                    <p class="text-gray-700">El autoexamen no sustituye las mamografías regulares o los exámenes clínicos realizados por profesionales de la salud. Es una herramienta complementaria.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-pink-600 text-2xl font-bold">1</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-center mb-3 text-pink-600">Frente al espejo</h3>
+                        <img src="https://lh5.googleusercontent.com/proxy/BegEIGjWP4oo-HDQhdaE-iIgjGC84afTz3EbawPnQIi0Y1_6A3tbYFe4e1WUIn0uO81BADQSs_vcbPswqB4aMrwydlzMBkfzwp0LdMGUdsTPe5xxd8MW85CIvaVSfUUNy97m4VNbzkpL3yelq7jvVMOZ_uYG09874iNifGo745HZ1IYZ_nxZPg" alt="Mujer frente al espejo" class="w-full h-40 object-cover rounded-lg mb-4">
+                        <p class="text-gray-700 mb-2">Párate frente al espejo con los hombros rectos y los brazos en la cadera.</p>
+                        <p class="text-gray-700 mb-2">Observa tus senos buscando:</p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-1 mb-3">
+                            <li>Tamaño, forma y color normales</li>
+                            <li>Senos uniformemente formados sin distorsiones o inflamaciones visibles</li>
+                        </ul>
+                        <p class="text-gray-700">Si notas cualquier cambio como arrugas, hoyuelos, o enrojecimiento en la piel, consulta a tu médico.</p>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-pink-600 text-2xl font-bold">2</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-center mb-3 text-pink-600">Manos en alto</h3>
+                        <img src="https://www.gdiuniformes.com/wp-content/uploads/2021/10/autoexploracion_mamaria_666-1200x675.jpg" alt="Mujer con brazos levantados" class="w-full h-40 object-cover rounded-lg mb-4">
+                        <p class="text-gray-700 mb-2">Ahora, levanta los brazos y observa si hay los mismos cambios.</p>
+                        <p class="text-gray-700 mb-2">Mientras estás frente al espejo:</p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-1 mb-3">
+                            <li>Observa si hay algún fluido saliendo de uno o ambos pezones (puede ser transparente, lechoso o amarillento, o sangre).</li>
+                            <li>Busca cualquier cambio en la dirección de los pezones.</li>
+                        </ul>
+                        <p class="text-gray-700">Repite estos pasos con los brazos a los lados y luego con las manos en la cintura presionando firmemente para flexionar los músculos del pecho.</p>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-pink-600 text-2xl font-bold">3</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-center mb-3 text-pink-600">Palpación acostada</h3>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFqRDm_u74WZOt92ofaEgeifCbfRj5-tPTdw&s" alt="Mujer acostada" class="w-full h-40 object-cover rounded-lg mb-4">
+                        <p class="text-gray-700 mb-2">Acuéstate y coloca tu mano derecha detrás de la cabeza. Con los dedos de la mano izquierda juntos, palpa suavemente tu seno derecho en movimientos circulares.</p>
+                        <p class="text-gray-700 mb-2">Utiliza diferentes niveles de presión:</p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-1 mb-3">
+                            <li>Presión ligera para sentir el tejido cercano a la piel</li>
+                            <li>Presión media para el tejido en el medio del seno</li>
+                            <li>Presión firme para sentir el tejido cerca de las costillas</li>
+                        </ul>
+                        <p class="text-gray-700">Repite con el seno izquierdo usando la mano derecha para palpar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6">
+                <h3 class="text-xl font-bold text-pink-600 mb-4">¿Qué debo buscar durante el autoexamen?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-800 mb-2">Señales visuales:</h4>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Cambios en el contorno o forma del seno</li>
+                            <li>Hoyuelos o arrugas en la piel</li>
+                            <li>Cambios en el pezón (inversión, desviación)</li>
+                            <li>Enrojecimiento, irritación o cambios en la textura de la piel</li>
+                            <li>Secreción del pezón (especialmente si es sanguinolenta)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-800 mb-2">Al tacto:</h4>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Bultos o nódulos (pueden ser duros o blandos)</li>
+                            <li>Áreas de engrosamiento inusual</li>
+                            <li>Zonas sensibles o dolorosas que persisten</li>
+                            <li>Cambios en la textura del tejido mamario</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 bg-pink-50 rounded-lg">
+                    <p class="text-gray-700"><i class="fas fa-info-circle text-pink-500 mr-2"></i>Recuerda: La mayoría de los bultos mamarios no son cancerosos, pero es importante que cualquier cambio sea evaluado por un profesional de la salud lo antes posible.</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/3 mb-4 md:mb-0 flex justify-center">
+                        <img src="https://www.shutterstock.com/shutterstock/videos/1087705559/thumb/12.jpg?ip=x480" alt="Calendario" class="w-full max-w-xs h-auto rounded-lg">
+                    </div>
+                    <div class="md:w-2/3 md:pl-6">
+                        <h3 class="text-xl font-bold text-pink-600 mb-3">¿Cuándo debo realizar el autoexamen?</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li><span class="font-medium text-pink-600">Si menstrúas:</span> Realiza el autoexamen entre 7 y 10 días después del primer día de tu período, cuando tus senos están menos inflamados y sensibles.</li>
+                            <li><span class="font-medium text-pink-600">Si no menstrúas:</span> Elige un día específico del mes (por ejemplo, el primer día) y realiza el autoexamen en esa fecha todos los meses.</li>
+                            <li><span class="font-medium text-pink-600">Consistencia:</span> Lo más importante es la regularidad. Establecer una rutina te ayudará a notar cambios con mayor facilidad.</li>
+                            <li><span class="font-medium text-gray-700">Información adicional:</span> Al final de esta página tienes un apartado para desgargar una pantilla de un calendario.</li>
+                        </ul>
+                        <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-blue-800"><i class="fas fa-lightbulb text-blue-500 mr-2"></i>Consejo: Marca en tu calendario o configura un recordatorio en tu teléfono para no olvidar realizar tu autoexamen mensual.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contactos y Recursos -->
+        <section id="resources" class="tab-content">
+            <div class="bg-pink-50 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-pink-600 mb-4">Contactos y Recursos de Apoyo</h2>
+                <p class="text-gray-700">A continuación encontrarás información sobre organizaciones, centros de atención y recursos disponibles para información, diagnóstico y tratamiento del cáncer de mama.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-pink-600 p-4">
+                        <h3 class="text-xl font-bold text-white">Líneas Nacionales de Ayuda</h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <i class="fas fa-phone-alt text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">FALP</h4>
+                                    <p class="text-gray-600">800 248 900 y +56 9 3798 3917</p>
+                                    <p class="text-gray-600">Horario de lunes a jueves de 9:00 a.m. a 18:00 hrs. y viernes de 9:00 a.m. a 17:00 hrs.</p>
+                                    <p class="text-sm text-gray-500">Además contarán con el número de Whatsapp +56 9 6309 1924.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-phone-alt text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">CECAN</h4>
+                                    <a href="https://cecan.cl/catastro/#:~:text=AGRUPACIÓN%20LA%20VOZ%20DE%20LOS%20PACIENTES%20CHILE,Tipo%20de%20organización:%20ORGANIZACIONES%20FUNCIONALES%20Y%20COMUNITARIAS." target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+                                        AGRUPACIÓN LA VOZ DE LOS PACIENTES CHILE
+                                    </a>
+                                    <p class="text-sm text-gray-500">brinda información sobre los distintos tipos de cáncer</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-phone-alt text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">ChileAtiende</h4>
+                                    <p class="text-gray-600">600 360 7777</p>
+                                    <a href="https://www.chileatiende.gob.cl/fichas/15852-prevenir-y-tratar-el-cancer-de-mama#:~:text=Accede%20a%20tratamiento%20con%20cobertura%20AUGE-GES&text=Las%20beneficiarias%20de%20Fonasa%20o,considera%20la%20cobertura%20AUGE-GES?" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+                                        Información sobre prevención y tratamiento del cáncer de mama (AUGE-GES)
+                                    </a>
+                                    <p class="text-sm text-gray-500">Orientación.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-pink-600 p-4">
+                        <h3 class="text-xl font-bold text-white">Organizaciones de Apoyo</h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <i class="fas fa-heart text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Fundación Arturo López Pérez (FALP)</h4>
+                                    <a href="https://www.falp.cl" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.falp.cl</a>
+                                    <p class="text-sm text-gray-500">Diagnóstico, tratamiento integral, apoyo psicosocial y programas de prevención y detección precoz del cáncer.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-heart text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Corporación Yo Mujer</h4>
+                                    <a href="https://www.yomujer.cl" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.yomujer.cl</a>
+                                    <p class="text-sm text-gray-500">Apoyo emocional, psicológico y educativo.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-heart text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Fundación Care</h4>
+                                    <a href="https://www.fundacioncare.cl" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.fundacioncare.cl</a>
+                                    <p class="text-sm text-gray-500">Acompañamiento emocional, asesoría médica, talleres de autocuidado y actividades para mujeres en tratamiento oncológico.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-pink-600 p-4">
+                        <h3 class="text-xl font-bold text-white">Recursos Educativos</h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <i class="fas fa-book-medical text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Fundación CARE</h4>
+                                    <a href="https://www.fundacioncare.cl/educacion" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.fundacioncare.cl/educacion</a>
+                                    <p class="text-sm text-gray-500">Videos informativos, infografías, cápsulas educativas, y experiencias de mujeres con cáncer.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-book-medical text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">Yo mujer</h4>
+                                    <a href="https://www.yomujer.cl" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">www.yomujer.cl</a>
+                                    <p class="text-sm text-gray-500">Guías psicoeducativas, videos y talleres gratuitos sobre cómo enfrentar el diagnóstico, efectos secundarios, y autoestima durante el tratamiento.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-video text-pink-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h4 class="font-medium text-gray-800">ChileAtiende – Ficha de tratamiento de cáncer de mama</h4>
+                                    <a href="https://www.chileatiende.gob.cl/fichas/15852-prevenir-y-tratar-el-cancer-de-mama" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">ChileAtiende – Cáncer de mama</a>
+                                    <p class="text-sm text-gray-500">Explica qué es el cáncer de mama, cómo prevenirlo, y los derechos de acceso a tratamiento AUGE-GES.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6">
+                <h3 class="text-xl font-bold text-pink-600 mb-4">Hospitales y Centros de Atención Especializada</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr class="bg-pink-100 text-pink-700">
+                                <th class="py-3 px-4 text-left">Centro</th>
+                                <th class="py-3 px-4 text-left">Ubicación</th>
+                                <th class="py-3 px-4 text-left">Contacto</th>
+                                <th class="py-3 px-4 text-left">Servicios</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="py-3 px-4 font-medium">Instituto Nacional del Cáncer (INC)</td>
+                                <td class="py-3 px-4">Av. Profesor Zañartu 1010, Independencia, Santiago</td>
+                                <td class="py-3 px-4">+56 2 2575 7100 o info@incancer.cl</td>
+                                <td class="py-3 px-4">Diagnóstico, cirugía oncológica, quimioterapia, radioterapia, cuidados paliativos.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 px-4 font-medium">Hospital Dr. Gustavo Fricke</td>
+                                <td class="py-3 px-4">Álvarez 1532, Viña del Mar</td>
+                                <td class="py-3 px-4">Central: +56 32 257 7602 / +56 32 257 7603 o leonardo.reyesv@redsalud.gov.cl</td>
+                                <td class="py-3 px-4">Evaluación, biopsias, cirugía, seguimiento.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 px-4 font-medium">Hospital Regional de Concepción</td>
+                                <td class="py-3 px-4">San Martín 1436, Concepción</td>
+                                <td class="py-3 px-4">+56 41 272 2500</td>
+                                <td class="py-3 px-4">Tratamiento integral del cáncer de mama bajo cobertura GES.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 px-4 font-medium">Clínica Alemana de Santiago</td>
+                                <td class="py-3 px-4">Av. Vitacura 5951, Las Condes, Santiago</td>
+                                <td class="py-3 px-4">+56 2 2210 1111 o clinica@alemana.cl</td>
+                                <td class="py-3 px-4">Consejo oncológico, radioterapia IMRT, terapias blanco.</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 px-4 font-medium">Hospital de Puerto Montt</td>
+                                <td class="py-3 px-4">Av. Egaña 541, Puerto Montt</td>
+                                <td class="py-3 px-4">+56 65 227 5100</td>
+                                <td class="py-3 px-4">Atención y derivación GES para cáncer de mama.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-pink-50 rounded-lg p-6 my-6">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/4 mb-4 md:mb-0 flex justify-center">
+                        <i class="fas fa-user-friends text-pink-500 text-6xl"></i>
+                    </div>
+                    <div class="md:w-3/4 md:pl-6">
+                        <h3 class="text-xl font-bold text-pink-600 mb-3">Grupos de Apoyo</h3>
+                        <p class="text-gray-700 mb-4">Los grupos de apoyo pueden ser un recurso valioso para personas diagnosticadas con cáncer de mama, supervivientes y sus familiares. Ofrecen un espacio seguro para compartir experiencias, obtener información y recibir apoyo emocional.</p>
+                        <div class="bg-white p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-800 mb-2">Beneficios de unirse a un grupo de apoyo:</h4>
+                            <ul class="list-disc pl-5 text-gray-700 space-y-1">
+                                <li>Reducción del estrés, ansiedad y depresión</li>
+                                <li>Acceso a información práctica sobre tratamientos y efectos secundarios</li>
+                                <li>Sentimiento de pertenencia y comprensión</li>
+                                <li>Desarrollo de habilidades de afrontamiento</li>
+                                <li>Oportunidad de ayudar a otros</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estadísticas y Datos -->
+        <section id="statistics" class="tab-content">
+            <div class="bg-pink-50 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-pink-600 mb-4">Estadísticas y Datos</h2>
+                <p class="text-gray-700">Conocer las estadísticas sobre el cáncer de mama nos ayuda a comprender la magnitud del problema y la importancia de la detección temprana.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-pink-600 mb-4">Incidencia Global</h3>
+                    <div class="h-64">
+                        <canvas id="incidenceChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <p>El cáncer de mama es el tipo de cáncer más común en mujeres a nivel mundial, representando aproximadamente el 25% de todos los cánceres diagnosticados en mujeres.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-pink-600 mb-4">Supervivencia por Etapa</h3>
+                    <div class="h-64">
+                        <canvas id="survivalChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <p>La tasa de supervivencia a 5 años varía significativamente según la etapa en que se detecta el cáncer, lo que destaca la importancia de la detección temprana.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6">
+                <h3 class="text-xl font-bold text-pink-600 mb-4">Datos Clave</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-pink-50 p-4 rounded-lg text-center">
+                        <div class="text-4xl font-bold text-pink-600 mb-2">1 de 8</div>
+                        <p class="text-gray-700">Mujeres desarrollará cáncer de mama a lo largo de su vida</p>
+                    </div>
+                    <div class="bg-pink-50 p-4 rounded-lg text-center">
+                        <div class="text-4xl font-bold text-pink-600 mb-2">99%</div>
+                        <p class="text-gray-700">Tasa de supervivencia a 5 años cuando se detecta en etapa localizada</p>
+                    </div>
+                    <div class="bg-pink-50 p-4 rounded-lg text-center">
+                        <div class="text-4xl font-bold text-pink-600 mb-2">~40%</div>
+                        <p class="text-gray-700">Reducción de la mortalidad gracias a la detección temprana</p>
+                    </div>
+                    <div class="bg-pink-50 p-4 rounded-lg text-center">
+                        <div class="text-4xl font-bold text-pink-600 mb-2">1%</div>
+                        <p class="text-gray-700">De los casos de cáncer de mama se dan en hombres</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-pink-600 mb-4">Factores de Riesgo</h3>
+                    <img src="https://juntosxtusalud.com/wp-content/uploads/2022/10/JXECDM22-Julia-B.png" alt="Factores de Riesgo" class="w-full max-w-m h-auto rounded-lg mb-4">
+                    <div class="mt-4 text-sm text-gray-600">
+                        <p>Diversos factores pueden aumentar el riesgo de desarrollar cáncer de mama. Algunos son modificables, mientras que otros no lo son.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-pink-600 mb-4">Distribución por Edad</h3>
+                    <div class="h-64">
+                        <canvas id="ageDistributionChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <p>Aunque el riesgo aumenta con la edad, el cáncer de mama puede afectar a mujeres jóvenes. Aproximadamente el 11% de los casos se diagnostican en mujeres menores de 45 años.</p>
+                    </div>
+                </div> <span style="display: none;" id="verificacion-autor">Bruno Acuña González</span>
+
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6">
+                <h3 class="text-xl font-bold text-pink-600 mb-4">Impacto de la Detección Temprana</h3>
+                <div class="flex flex-col md:flex-row">
+                    <div class="md:w-1/2 mb-6 md:mb-0 md:pr-6">
+                        <h4 class="font-medium text-gray-800 mb-3">Beneficios de la detección temprana:</h4>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Mayor tasa de supervivencia (hasta 99% a 5 años en etapa localizada)</li>
+                            <li>Opciones de tratamiento menos agresivas</li>
+                            <li>Menores tasas de recurrencia</li>
+                            <li>Mejor calidad de vida durante y después del tratamiento</li>
+                            <li>Menor costo económico del tratamiento</li>
+                        </ul>
+                    </div>
+                    <div class="md:w-1/2 md:pl-6 border-t md:border-t-0 md:border-l border-gray-200 pt-6 md:pt-0">
+                        <h4 class="font-medium text-gray-800 mb-3">Métodos de detección temprana:</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="font-medium text-pink-600">Autoexamen mensual</p>
+                                <p class="text-gray-700 text-sm">Recomendado a partir de los 20 años</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-pink-600">Examen clínico</p>
+                                <p class="text-gray-700 text-sm">Cada 1-3 años entre los 20-39 años; anual a partir de los 40</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-pink-600">Mamografía</p>
+                                <p class="text-gray-700 text-sm">Anual a partir de los 40-50 años (según factores de riesgo)</p>
+                            </div>
+                            <div>
+                                <p class="font-medium text-pink-600">Resonancia magnética</p>
+                                <p class="text-gray-700 text-sm">Para mujeres con alto riesgo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cuestionarios Interactivos -->
+        <section id="quiz" class="tab-content">
+            <div class="bg-pink-50 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-pink-600 mb-4">Cuestionario de Conocimiento</h2>
+                <p class="text-gray-700">Pon a prueba tus conocimientos sobre el cáncer de mama, su prevención y detección temprana.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 my-6" id="quiz-container">
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-medium text-gray-800">Tu progreso</h3>
+                        <span id="quiz-progress-text" class="text-sm text-gray-600">Pregunta 1 de 10</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="quiz-progress-bar" class="bg-pink-500 h-2.5 rounded-full progress-bar" style="width: 20%"></div>
+                    </div>
+                </div>
+
+                <div id="quiz-questions">
+                    <!-- Pregunta 1 -->
+                    <div class="quiz-question active" data-question="1">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">1. ¿Cuál es el factor de riesgo más significativo para desarrollar cáncer de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Consumo de alcohol</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Uso de desodorantes con aluminio</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Ser mujer y envejecer</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Uso de sostenes con aros</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Ser mujer y envejecer son los factores de riesgo más significativos. El riesgo aumenta con la edad, y más del 99% de los casos ocurren en mujeres.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Ser mujer y envejecer son los factores de riesgo más significativos. El riesgo aumenta con la edad, y más del 99% de los casos ocurren en mujeres.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 2 -->
+                    <div class="quiz-question hidden" data-question="2">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">2. ¿Cuál NO es un signo de advertencia del cáncer de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Un bulto nuevo en la mama o axila</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Dolor menstrual cíclico en los senos</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Cambio en el tamaño o forma de la mama</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Secreción del pezón que contiene sangre</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! El dolor menstrual cíclico es normal y generalmente no es un signo de cáncer de mama. Los otros síntomas mencionados pueden ser signos de advertencia que deben evaluarse.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. El dolor menstrual cíclico es normal y generalmente no es un signo de cáncer de mama. Los otros síntomas mencionados pueden ser signos de advertencia que deben evaluarse.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 3 -->
+                    <div class="quiz-question hidden" data-question="3">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">3. ¿Cuándo se recomienda realizar el autoexamen de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>7-10 días después del inicio del período menstrual</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Durante el período menstrual</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>El primer día de cada mes</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Justo antes del período menstrual</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Se recomienda realizar el autoexamen 7-10 días después del inicio del período menstrual, cuando los senos están menos inflamados y sensibles.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Se recomienda realizar el autoexamen 7-10 días después del inicio del período menstrual, cuando los senos están menos inflamados y sensibles.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 4 -->
+                    <div class="quiz-question hidden" data-question="4">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">4. ¿A qué edad se recomienda comenzar con las mamografías regulares para personas con riesgo promedio?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>A los 30 años</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Entre los 40 y 50 años (según factores de riesgo)</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>A los 60 años</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Solo cuando se detecta un bulto</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! La mayoría de las organizaciones médicas recomiendan comenzar las mamografías regulares entre los 40 y 50 años para personas con riesgo promedio. Consulta con tu médico para recibir recomendaciones personalizadas.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. La mayoría de las organizaciones médicas recomiendan comenzar las mamografías regulares entre los 40 y 50 años para personas con riesgo promedio. Consulta con tu médico para recibir recomendaciones personalizadas.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 5 -->
+                    <div class="quiz-question hidden" data-question="5">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">5. ¿Los hombres pueden desarrollar cáncer de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Sí, aunque es menos común que en mujeres</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>No, es imposible porque los hombres no tienen tejido mamario</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Solo si tienen antecedentes familiares directos</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Solo en casos de obesidad severa</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Los hombres sí pueden desarrollar cáncer de mama, aunque es relativamente raro. Representa aproximadamente el 1% de todos los casos de cáncer de mama.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Los hombres sí pueden desarrollar cáncer de mama, aunque es relativamente raro. Representa aproximadamente el 1% de todos los casos de cáncer de mama.</p>
+                        </div>
+                    </div>
+
+                     <!-- Pregunta 6 -->
+                    <div class="quiz-question hidden" data-question="6">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">6. ¿Qué significa tener un resultado positivo en una mamografía?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Que puede haber una anomalía que requiere más estudios</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Que no hay necesidad de extirpar el seno</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Que no hay problemas</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Que se ha curado el cáncer</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Un resultado positivo no significa necesariamente cáncer, pero sí indica una posible anomalía. Por eso, se deben realizar estudios complementarios para confirmar o descartar un diagnóstico.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Un resultado positivo no significa necesariamente cáncer, pero sí indica una posible anomalía. Por eso, se deben realizar estudios complementarios para confirmar o descartar un diagnóstico.</p>
+                        </div>
+                    </div>
+
+                    
+
+                    <!-- Pregunta 7 -->
+                    <div class="quiz-question hidden" data-question="7">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">7. ¿Cuál de estos tratamientos se utiliza comúnmente contra el cáncer de mama y cánceres en general?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Acupuntura</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Quimioterapia</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Homeopatía</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Terapia con masajes</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! La quimioterapia busca eliminar células cancerígenas, aunque también debilita al organismo, haciéndolo más susceptible a otras enfermedades.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. La quimioterapia busca eliminar células cancerígenas, aunque también debilita al organismo, haciéndolo más susceptible a otras enfermedades.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 8 -->
+                    <div class="quiz-question hidden" data-question="8">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">8. ¿Qué hormona está relacionada con algunos tipos de cáncer de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Insulina</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Estrógeno</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Testosterona</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q4" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Adrenalina</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! El estrógeno es una hormona femenina clave en el desarrollo sexual y reproductivo. Algunos tipos de cáncer de mama crecen en respuesta a esta hormona.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. El estrógeno es una hormona femenina clave en el desarrollo sexual y reproductivo. Algunos tipos de cáncer de mama crecen en respuesta a esta hormona.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 9 -->
+                    <div class="quiz-question hidden" data-question="9">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">9. ¿Cuál es la principal razón para detectar el cáncer de mama en etapas tempranas?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Aumentar las posibilidades de cura</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Evitar gastos médicos</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>No tener que hacer el tratamiento</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Poder viajar sin preocupaciones</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Detectarlo a tiempo permite iniciar el tratamiento de forma precoz, lo que mejora significativamente el pronóstico y las tasas de supervivencia.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Detectarlo a tiempo permite iniciar el tratamiento de forma precoz, lo que mejora significativamente el pronóstico y las tasas de supervivencia.</p>
+                        </div>
+                    </div>
+
+                     <!-- Pregunta 10 -->
+                    <div class="quiz-question hidden" data-question="10">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">10. ¿Qué se recomienda hacer antes de una mamografía para mayor comodidad y precisión?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Evitar productos en axilas y pechos ese día</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Aplicar desodorante en abundancia</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Tomar analgesicos fuertes</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q5" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Comer alimentos ricos en grasa</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! Cosméticos como desodorantes o talcos pueden aparecer como manchas blancas en la imagen, dificultando la interpretación por parte del radiólogo.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. Cosméticos como desodorantes o talcos pueden aparecer como manchas blancas en la imagen, dificultando la interpretación por parte del radiólogo.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pregunta 11 -->
+                    <div class="quiz-question hidden" data-question="11">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">11. ¿Qué es la pesquisa del cáncer de mama?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Una cirurgía de prevención</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="true">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>La búsqueda activa de la enfermedad antes de que haya síntomas</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>Tratamiento con medicamentos</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:border-pink-300" data-correct="false">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="hidden">
+                                    <span class="w-5 h-5 inline-block border-2 border-gray-300 rounded-full mr-3 flex-shrink-0"></span>
+                                    <span>UN análisis de sangre</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-green-50 rounded-lg hidden feedback-correct">
+                            <p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>¡Correcto! La pesquisa es clave en la prevención, ya que permite detectar el cáncer antes de que se manifiesten signos clínicos, mejorando así el tratamiento y el pronóstico.</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-red-50 rounded-lg hidden feedback-incorrect">
+                            <p class="text-red-700"><i class="fas fa-times-circle mr-2"></i>Incorrecto. La pesquisa es clave en la prevención, ya que permite detectar el cáncer antes de que se manifiesten signos clínicos, mejorando así el tratamiento y el pronóstico.</p>
+                        </div>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div id="quiz-results" class="hidden">
+                        <h3 class="text-xl font-bold text-pink-600 mb-4">Resultados del Cuestionario</h3>
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                            <div class="text-5xl font-bold text-pink-600 mb-2"><span id="score">0</span>/11</div>
+                            <p class="text-xl text-gray-700 mb-4">Preguntas respondidas correctamente</p>
+                            <div id="result-message" class="mb-6 text-gray-700"></div>
+                            <button id="restart-quiz" class="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-300">
+                                <i class="fas fa-redo mr-2"></i>Volver a intentar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-between" id="quiz-navigation">
+                    <button id="prev-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-300 hidden">
+                        <i class="fas fa-arrow-left mr-2"></i>Anterior
+                    </button>
+                    <button id="next-btn" class="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Siguiente<i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PDF -->
+        <section id="pdf" class="tab-content">
+            <div class="bg-pink-50 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-bold text-pink-600 mb-4">Documento PDF</h2>
+                <p class="text-gray-700">Aquí puedes ver una pantilla de un calendio y descargarlo para uso libre.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md overflow-hidden my-6">
+                <div class="pdf-controls">
+                    <a id="pdf-download" href="https://drive.google.com/file/d/1TJDEPML8xZPiLTkhXn3YrxJ_-zx4xn40/view" download class="pdf-button">
+                        <i class="fas fa-download mr-2"></i>Descargar PDF
+                    </a>
+                        <option value="https://drive.google.com/file/d/1TJDEPML8xZPiLTkhXn3YrxJ_-zx4xn40/view">
+                            Calendario guia de autoexamen. 
+                        </option>
+                    </select>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-pink-600 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h2 class="text-xl font-bold mb-2">Prevención y Detección del Cáncer de Mama</h2>
+                    <p class="text-pink-100">Tríptico informativo para jóvenes adultos</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="javascript:void(0)" class="text-white hover:text-pink-200 transition-colors duration-300">
+                        <i class="fab fa-facebook-f text-xl"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="text-white hover:text-pink-200 transition-colors duration-300">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="text-white hover:text-pink-200 transition-colors duration-300">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="text-white hover:text-pink-200 transition-colors duration-300">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                </div>
+            </>
+            <hr class="border-pink-400 my-4">
+            <div class="text-center text-pink-100 text-sm">
+                <p>© 2025 - Este es un material educativo. Consulta siempre a un profesional de la salud.</p>
+                <p>Desarrollado por: Bruno Acuña; Ignacia Abarzúa; Kevin Aburto</p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-80 flex justify-center items-center z-50 hidden">
+        <div class="text-center">
+            <div class="spinner inline-block w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full mb-4"></div>
+            <p class="text-gray-700">Cargando...</p>
+        </div>
+    </div>
+
+    <script id="app-script">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar las pestañas
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.getAttribute('data-tab');
+                    
+                    // Desactivar todas las pestañas
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'text-pink-600', 'border-pink-600');
+                        btn.classList.add('text-gray-600', 'border-transparent');
+                    });
+                    
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Activar la pestaña seleccionada
+                    button.classList.add('active', 'text-pink-600', 'border-pink-600');
+                    button.classList.remove('text-gray-600');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // Guardar la pestaña actual en localStorage
+                    localStorage.setItem('activeTab', tabId);
+
+                    // Inicializar funcionalidades específicas de la pestaña
+                    if (tabId === 'statistics' && typeof Chart !== 'undefined') {
+                        setTimeout(initCharts, 100);
+                    } else if (tabId === 'quiz') {
+                        setTimeout(initQuiz, 100);
+                    } else if (tabId === 'pdf') {
+                        setTimeout(initPDFViewer, 100);
+                    }
+                });
+            });
+            
+            // Cargar la pestaña guardada o la primera por defecto
+            const savedTab = localStorage.getItem('activeTab');
+            if (savedTab) {
+                const savedButton = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+                if (savedButton) {
+                    savedButton.click();
+                }
+            } else {
+                // Si es la primera vez, inicializar las funcionalidades de la pestaña activa por defecto
+                if (document.getElementById('info').classList.contains('active')) {
+                    tabButtons[0].classList.add('active', 'text-pink-600', 'border-pink-600');
+                    tabButtons[0].classList.remove('text-gray-600');
+                }
+            }
+            
+            // Inicializar acordeones
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('i');
+                    
+                    content.classList.toggle('active');
+                    if (content.classList.contains('active')) {
+                        icon.style.transform = 'rotate(180deg)';
+                    } else {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+            
+            // Inicializar gráficas (estadísticas)
+            function initCharts() {
+                // Verificar si las gráficas ya están inicializadas
+                if (window.chartsInitialized) return;
+                
+                // Gráfica de incidencia global
+                const incidenceCtx = document.getElementById('incidenceChart').getContext('2d');
+                new Chart(incidenceCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Cáncer de mama', 'Otros tipos de cáncer en mujeres'],
+                        datasets: [{
+                            data: [25, 75],
+                            backgroundColor: ['#e84393', '#b2bec3'],
+                            borderColor: ['#fff', '#fff'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Incidencia del cáncer de mama en mujeres'
+                            }
+                        }
+                    }
+                });
+
+                // Gráfica de supervivencia por etapa
+                const survivalCtx = document.getElementById('survivalChart').getContext('2d');
+                new Chart(survivalCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Etapa 0-I', 'Etapa II', 'Etapa III', 'Etapa IV'],
+                        datasets: [{
+                            label: 'Tasa de supervivencia a 5 años (%)',
+                            data: [99, 85, 66, 27],
+                            backgroundColor: '#fd79a8',
+                            borderColor: '#e84393',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                // Gráfica de distribución por edad
+                const ageDistributionCtx = document.getElementById('ageDistributionChart').getContext('2d');
+                new Chart(ageDistributionCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['<30', '30-39', '40-49', '50-59', '60-69', '70+'],
+                        datasets: [{
+                            label: 'Incidencia por edad (%)',
+                            data: [2, 9, 22, 25, 24, 18],
+                            fill: true,
+                            backgroundColor: 'rgba(253, 121, 168, 0.2)',
+                            borderColor: '#e84393',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+                window.chartsInitialized = true;
+            }
+
+            // Inicializar cuestionario
+            function initQuiz() {
+                const quizContainer = document.getElementById('quiz-container');
+                const quizQuestions = document.querySelectorAll('.quiz-question');
+                const quizOptions = document.querySelectorAll('.quiz-option');
+                const progressBar = document.getElementById('quiz-progress-bar');
+                const progressText = document.getElementById('quiz-progress-text');
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+                const resultsDiv = document.getElementById('quiz-results');
+                const scoreElement = document.getElementById('score');
+                const resultMessage = document.getElementById('result-message');
+                const restartBtn = document.getElementById('restart-quiz');
+                
+                let currentQuestion = 1;
+                let totalQuestions = quizQuestions.length;
+                let score = 0;
+                let answered = [];
+                
+                // Cargar estado del cuestionario guardado
+                loadQuizState();
+                
+                // Actualizar interfaz según el estado guardado
+                updateQuizUI();
+                
+                // Event listeners para opciones del cuestionario
+                quizOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        const questionDiv = option.closest('.quiz-question');
+                        const questionNumber = parseInt(questionDiv.getAttribute('data-question'));
+                        
+                        // Si ya se respondió esta pregunta, no hacer nada
+                        if (answered.includes(questionNumber)) return;
+                        
+                        const isCorrect = option.getAttribute('data-correct') === 'true';
+                        const allOptions = questionDiv.querySelectorAll('.quiz-option');
+                        
+                        // Marcar la opción seleccionada
+                        allOptions.forEach(opt => {
+                            opt.classList.remove('correct', 'incorrect');
+                            const radio = opt.querySelector('input[type="radio"]');
+                            radio.checked = false;
+                        });
+                        
+                        option.querySelector('input[type="radio"]').checked = true;
+                        
+                        if (isCorrect) {
+                            option.classList.add('correct');
+                            questionDiv.querySelector('.feedback-correct').classList.remove('hidden');
+                            questionDiv.querySelector('.feedback-incorrect').classList.add('hidden');
+                            if (!answered.includes(questionNumber)) {
+                                score++;
+                            }
+                        } else {
+                            option.classList.add('incorrect');
+                            questionDiv.querySelector('.feedback-incorrect').classList.remove('hidden');
+                            questionDiv.querySelector('.feedback-correct').classList.add('hidden');
+                            
+                            // Mostrar la respuesta correcta
+                            allOptions.forEach(opt => {
+                                if (opt.getAttribute('data-correct') === 'true') {
+                                    opt.classList.add('correct');
+                                }
+                            });
+                        }
+                        
+                        // Marcar como respondida
+                        if (!answered.includes(questionNumber)) {
+                            answered.push(questionNumber);
+                        }
+                        
+                        // Habilitar el botón de siguiente
+                        nextBtn.disabled = false;
+                        
+                        // Guardar estado
+                        saveQuizState();
+                    });
+                });
+                
+                // Botón siguiente
+                nextBtn.addEventListener('click', () => {
+                    if (currentQuestion < totalQuestions) {
+                        currentQuestion++;
+                        updateQuizUI();
+                    } else {
+                        showResults();
+                    }
+                    
+                    saveQuizState();
+                });
+                
+                // Botón anterior
+                prevBtn.addEventListener('click', () => {
+                    if (currentQuestion > 1) {
+                        currentQuestion--;
+                        updateQuizUI();
+                    }
+                    
+                    saveQuizState();
+                });
+                
+                // Botón reiniciar
+                restartBtn.addEventListener('click', () => {
+                    resetQuiz();
+                });
+                
+                // Función para actualizar la interfaz del cuestionario
+                function updateQuizUI() {
+                    // Actualizar la barra de progreso
+                    const progress = (currentQuestion / totalQuestions) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = `Pregunta ${currentQuestion} de ${totalQuestions}`;
+                    
+                    // Mostrar/ocultar botones de navegación
+                    prevBtn.classList.toggle('hidden', currentQuestion === 1);
+                    
+                    if (currentQuestion === totalQuestions) {
+                        nextBtn.textContent = 'Ver resultados';
+                        nextBtn.innerHTML = 'Ver resultados<i class="fas fa-check-circle ml-2"></i>';
+                    } else {
+                        nextBtn.textContent = 'Siguiente';
+                        nextBtn.innerHTML = 'Siguiente<i class="fas fa-arrow-right ml-2"></i>';
+                    }
+                    
+                    // Habilitar/deshabilitar botón siguiente
+                    nextBtn.disabled = !answered.includes(currentQuestion);
+                    
+                    // Mostrar la pregunta actual
+                    quizQuestions.forEach(question => {
+                        const questionNumber = parseInt(question.getAttribute('data-question'));
+                        if (questionNumber === currentQuestion) {
+                            question.classList.remove('hidden');
+                            question.classList.add('active');
+                        } else {
+                            question.classList.add('hidden');
+                            question.classList.remove('active');
+                        }
+                    });
+                }
+                
+                // Función para mostrar resultados
+                function showResults() {
+                    quizQuestions.forEach(question => {
+                        question.classList.add('hidden');
+                    });
+                    
+                    document.getElementById('quiz-navigation').classList.add('hidden');
+                    document.getElementById('quiz-progress-text').classList.add('hidden');
+                    document.querySelector('#quiz-container .mb-4').classList.add('hidden');
+                    
+                    resultsDiv.classList.remove('hidden');
+                    scoreElement.textContent = score;
+                    
+                    // Mensaje según la puntuación
+                    if (score === totalQuestions) {
+                        resultMessage.innerHTML = '¡Excelente! Tienes un conocimiento sobresaliente sobre el cáncer de mama. Sigue así y comparte esta información con otros.';
+                    } else if (score >= Math.ceil(totalQuestions * 0.8)) {
+                        resultMessage.innerHTML = '¡Muy bien! Tienes un buen conocimiento sobre el cáncer de mama. Revisa los temas que has fallado para aprender más.';
+                    } else if (score >= Math.ceil(totalQuestions * 0.6)) {
+                        resultMessage.innerHTML = 'Bien hecho. Tienes conocimientos básicos sobre el cáncer de mama. Te recomendamos revisar la información de este tríptico para aprender más.';
+                    } else {
+                        resultMessage.innerHTML = 'Gracias por completar el cuestionario. Te recomendamos revisar la información de este tríptico para aprender más sobre el cáncer de mama y su detección temprana.';
+                    }
+                }
+                
+                // Función para reiniciar el cuestionario
+                function resetQuiz() {
+                    currentQuestion = 1;
+                    score = 0;
+                    answered = [];
+                    
+                    quizOptions.forEach(option => {
+                        option.classList.remove('correct', 'incorrect');
+                        option.querySelector('input[type="radio"]').checked = false;
+                    });
+                    
+                    document.querySelectorAll('.feedback-correct, .feedback-incorrect').forEach(feedback => {
+                        feedback.classList.add('hidden');
+                    });
+                    
+                    resultsDiv.classList.add('hidden');
+                    document.getElementById('quiz-navigation').classList.remove('hidden');
+                    document.getElementById('quiz-progress-text').classList.remove('hidden');
+                    document.querySelector('#quiz-container .mb-4').classList.remove('hidden');
+                    
+                    nextBtn.disabled = true;
+                    
+                    updateQuizUI();
+                    
+                    // Borrar estado guardado
+                    localStorage.removeItem('quizState');
+                }
+                
+                // Guardar estado del cuestionario
+                function saveQuizState() {
+                    const state = {
+                        currentQuestion,
+                        score,
+                        answered
+                    };
+                    
+                    localStorage.setItem('quizState', JSON.stringify(state));
+                }
+                
+                // Cargar estado del cuestionario
+                function loadQuizState() {
+                    const savedState = localStorage.getItem('quizState');
+                    
+                    if (savedState) {
+                        const state = JSON.parse(savedState);
+                        currentQuestion = state.currentQuestion;
+                        score = state.score;
+                        answered = state.answered;
+                        
+                        // Restaurar respuestas marcadas
+                        answered.forEach(questionNumber => {
+                            const questionDiv = document.querySelector(`.quiz-question[data-question="${questionNumber}"]`);
+                            const options = questionDiv.querySelectorAll('.quiz-option');
+                            
+                            options.forEach(option => {
+                                const isCorrect = option.getAttribute('data-correct') === 'true';
+                                
+                                if (isCorrect) {
+                                    option.classList.add('correct');
+                                    questionDiv.querySelector('.feedback-correct').classList.remove('hidden');
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+
+            // PDF Viewer: Remove unused UI and handlers, simplify to single-page render and download link
+            function initPDFViewer() {
+                if (window.pdfViewerInitialized) return;
+
+                const pdfLoading = document.getElementById('pdf-loading');
+                const pdfCanvas  = document.getElementById('pdf-canvas');
+                const pageNumSpan= document.getElementById('pdf-page-num');
+                const pageCountSpan = document.getElementById('pdf-page-count');
+                const pdfSelect  = document.getElementById('pdf-select');
+                const downloadLink = document.getElementById('pdf-download');
+
+                let pdfDoc = null, pageNum = 1, scale = 1.5;
+
+                const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+                loadPDF(pdfSelect.value);
+
+                function loadPDF(url) {
+                    pdfLoading.classList.remove('hidden');
+                    pdfjsLib.getDocument(url).promise
+                      .then(pdf => {
+                         pdfDoc = pdf;
+                         pageCountSpan.textContent = pdf.numPages;
+                         downloadLink.href = url;            // +++ keep download in sync
+                         renderPage(1);
+                      })
+                      .catch(err => {
+                         console.error(err);
+                         pdfLoading.classList.add('hidden');
+                         alert('Error al cargar el documento PDF.');
+                      });
+                }
+
+                function renderPage(num) {
+                    pdfLoading.classList.remove('hidden');
+                    pdfDoc.getPage(num).then(page => {
+                        const vp = page.getViewport({ scale });
+                        pdfCanvas.width  = vp.width;
+                        pdfCanvas.height = vp.height;
+                        page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport: vp })
+                            .promise.finally(() => pdfLoading.classList.add('hidden'));
+                        pageNumSpan.textContent = num;
+                    });
+                }
+
+                // +++ Only change PDF when selector fires
+                pdfSelect.addEventListener('change', () => {
+                    pageNum = 1;
+                    loadPDF(pdfSelect.value);
+                });
+
+                window.pdfViewerInitialized = true;
+            }
+
+            // Función para mostrar/ocultar la pantalla de carga
+            function showLoading(show = true) {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (show) {
+                    loadingOverlay.classList.remove('hidden');
+                } else {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }
+
+            // Inicializar funcionalidades según la pestaña activa al cargar
+            if (document.getElementById('statistics').classList.contains('active') && typeof Chart !== 'undefined') {
+                setTimeout(initCharts, 100);
+            }
+
+            if (document.getElementById('quiz').classList.contains('active')) {
+                setTimeout(initQuiz, 100);           // +++ ensure initQuiz runs after activating tab
+            }
+
+            if (document.getElementById('pdf').classList.contains('active')) {
+                setTimeout(initPDFViewer, 100);
+            }
+        });
+    </script>
+</body>
+</html>
